@@ -9,8 +9,6 @@ import { useToast } from '@/components/Toast';
 import { formatCurrencyINR, getNext7Days, formatDateIN } from '@/lib/utils';
 import {
   X,
-  Calendar,
-  Clock,
   Hospital,
   Stethoscope,
   AlertCircle,

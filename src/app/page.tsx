@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { SlotChip } from '@/components/SlotChip';
 import { BookingModal } from '@/components/BookingModal';
-import { formatCurrencyINR, formatDateIN, getTodayISO } from '@/lib/utils';
+import { formatCurrencyINR } from '@/lib/utils';
 import { Doctor, SPECIALTIES } from '@/types';
 import {
   HeartPulse,
@@ -16,41 +15,39 @@ import {
   Baby,
   Bone,
   Stethoscope,
-  Clock,
   Hospital,
   ShieldCheck,
-  CalendarCheck,
-  CheckCircle2,
   ArrowRight,
-  UserCheck,
   ChevronRight,
   Star,
-  Award,
-  Zap,
 } from 'lucide-react';
+
+type HomeHeroDoctor = {
+  id: string;
+  name: string;
+  specialty: string;
+  hospital: string;
+  fee: number;
+  yearsExperience: number;
+  slots: Array<{ time: string; isBooked: boolean }>;
+};
+
+type HomeFeaturedDoctor = {
+  id: string;
+  name: string;
+  specialty: string;
+  hospital: string;
+  fee: number;
+  yearsExperience: number;
+  todayFreeSlotsCount: number;
+  nextSlot: string;
+};
 
 interface HomeData {
   today: string;
   specialtyTiles: Array<{ specialty: string; count: number }>;
-  heroDoctor: {
-    id: string;
-    name: string;
-    specialty: string;
-    hospital: string;
-    fee: number;
-    yearsExperience: number;
-    slots: Array<{ time: string; isBooked: boolean }>;
-  } | null;
-  featuredDoctors: Array<{
-    id: string;
-    name: string;
-    specialty: string;
-    hospital: string;
-    fee: number;
-    yearsExperience: number;
-    todayFreeSlotsCount: number;
-    nextSlot: string;
-  }>;
+  heroDoctor: HomeHeroDoctor | null;
+  featuredDoctors: HomeFeaturedDoctor[];
 }
 
 function HomePageContent() {
@@ -69,7 +66,7 @@ function HomePageContent() {
       try {
         const res = await fetch('/api/public/home-data');
         if (res.ok) {
-          const json = await res.json();
+          const json = (await res.json()) as HomeData;
           setData(json);
         }
       } catch (err) {
@@ -80,6 +77,17 @@ function HomePageContent() {
     }
     loadData();
   }, []);
+
+  const toBookingDoctor = (doctor: HomeHeroDoctor | HomeFeaturedDoctor): Doctor => ({
+    id: doctor.id,
+    userId: '',
+    name: doctor.name,
+    specialty: doctor.specialty,
+    hospital: doctor.hospital,
+    fee: doctor.fee,
+    yearsExperience: doctor.yearsExperience,
+    active: true,
+  });
 
   const getSpecialtyIcon = (spec: string) => {
     switch (spec) {
@@ -96,25 +104,12 @@ function HomePageContent() {
     }
   };
 
-  const handleHeroSlotClick = (slot: string, isBooked: boolean) => {
-    if (isBooked) return;
+  const handleBookDoctorClick = (doc: HomeFeaturedDoctor) => {
     if (!session?.user) {
       router.push(`/login?callbackUrl=/patient&role=PATIENT`);
       return;
     }
-    if (data?.heroDoctor) {
-      setSelectedDoctorForBooking(data.heroDoctor as any);
-      setInitialBookingSlot(slot);
-      setBookingModalOpen(true);
-    }
-  };
-
-  const handleBookDoctorClick = (doc: any) => {
-    if (!session?.user) {
-      router.push(`/login?callbackUrl=/patient&role=PATIENT`);
-      return;
-    }
-    setSelectedDoctorForBooking(doc);
+    setSelectedDoctorForBooking(toBookingDoctor(doc));
     setInitialBookingSlot('');
     setBookingModalOpen(true);
   };
@@ -124,6 +119,14 @@ function HomePageContent() {
       <Navbar />
 
       <main className="flex-1">
+        {loading && !data ? (
+          <section className="px-4 py-12">
+            <div className="max-w-4xl mx-auto rounded-2xl border border-[#E2E8F0] bg-white p-6 text-[#475569] dark:border-[#1E293B] dark:bg-[#132338] dark:text-[#94A3B8]">
+              Loading specialists and appointment slots...
+            </div>
+          </section>
+        ) : null}
+
         {/* HERO SECTION */}
         <section className="relative overflow-hidden pt-8 pb-14 md:pt-16 md:pb-20 border-b border-[#E2E8F0] dark:border-[#1E293B] bg-gradient-to-b from-[#EFF6FF]/60 via-[#F8FAFC] to-[#F8FAFC] dark:from-[#0F1E36]/40 dark:to-[#0B132B]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
