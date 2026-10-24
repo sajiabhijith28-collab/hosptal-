@@ -39,6 +39,24 @@ async function main() {
     },
   });
 
+  // Admin Account for Abhijith Saji
+  await prisma.user.create({
+    data: {
+      name: 'Abhijith Saji',
+      email: 'abhijithsaji.in',
+      passwordHash: await bcrypt.hash('demo1234', 10),
+      role: 'ADMIN',
+    },
+  });
+  await prisma.user.create({
+    data: {
+      name: 'Abhijith Saji',
+      email: 'abhijith@saji.in',
+      passwordHash: await bcrypt.hash('demo1234', 10),
+      role: 'ADMIN',
+    },
+  });
+
   // Doctor User 1 (Demo Doctor)
   const doctorUser1 = await prisma.user.create({
     data: {
