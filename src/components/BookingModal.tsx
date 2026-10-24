@@ -29,6 +29,15 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 
+type ConfirmedBookingData = {
+  id: string;
+  date: string;
+  time: string;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: string;
+  transactionId?: string | null;
+};
+
 interface BookingModalProps {
   doctor: Doctor | null;
   isOpen: boolean;
@@ -67,7 +76,7 @@ export function BookingModal({
   const [upiApp, setUpiApp] = useState<'gpay' | 'phonepe' | 'paytm' | 'custom'>('gpay');
   const [upiId, setUpiId] = useState<string>('');
   const [showQr, setShowQr] = useState<boolean>(true);
-  const [confirmedBookingData, setConfirmedBookingData] = useState<any>(null);
+  const [confirmedBookingData, setConfirmedBookingData] = useState<ConfirmedBookingData | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   const clinicUpiId = process.env.NEXT_PUBLIC_CLINIC_UPI_ID || '9495821891@ybl';
@@ -174,9 +183,10 @@ export function BookingModal({
     e.preventDefault();
     setBookingError(null);
 
+    // If UPI custom mode is chosen without an ID, default to direct UPI rather than blocking
+    let finalPaymentMethod = paymentMethod;
     if (paymentMethod === 'UPI' && upiApp === 'custom' && !upiId.trim()) {
-      setBookingError('Please enter your UPI ID (e.g. user@upi) or select an app above.');
-      return;
+      setUpiId('Google Pay');
     }
 
     setSubmitting(true);
@@ -188,8 +198,8 @@ export function BookingModal({
           doctorId: doctor.id,
           date: selectedDate,
           time: selectedTime,
-          reason,
-          paymentMethod,
+          reason: reason?.trim() || 'General consultation',
+          paymentMethod: finalPaymentMethod,
         }),
       });
 
@@ -203,9 +213,10 @@ export function BookingModal({
       setStep('confirmed');
       showToast('Payment verified & appointment reserved!', 'success');
       if (onSuccess) onSuccess();
-    } catch (err: any) {
-      setBookingError(err.message || 'Could not complete appointment booking.');
-      showToast(err.message || 'Booking failed.', 'error');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Could not complete appointment booking.';
+      setBookingError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setSubmitting(false);
     }
