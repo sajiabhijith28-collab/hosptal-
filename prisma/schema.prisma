@@ -1,0 +1,60 @@
+// Prisma schema for Mediwell - Doctor appointment booking system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String             @id @default(cuid())
+  name                String
+  email               String             @unique
+  passwordHash        String
+  role                String             @default("PATIENT") // PATIENT | DOCTOR | ADMIN
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  doctorProfile       Doctor?
+  patientAppointments Appointment[]      @relation("PatientAppointments")
+}
+
+model Doctor {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  specialty       String
+  hospital        String
+  fee             Int
+  yearsExperience Int           @default(5)
+  active          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  appointments    Appointment[]
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId String
+  patient   User     @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
+  date      String   // ISO Date format: YYYY-MM-DD
+  time      String   // Slot format: HH:mm (e.g., 09:00, 14:30)
+  reason    String?
+  status        String   @default("PENDING") // PENDING | CONFIRMED | COMPLETED | CANCELLED
+  paymentStatus String   @default("PAID") // PAID | PAY_AT_CLINIC
+  paymentMethod String?  @default("UPI")  // UPI | CARD | NETBANKING | PAY_AT_CLINIC
+  paymentAmount Int?
+  transactionId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([doctorId, date])
+  @@index([patientId])
+}
